@@ -1,0 +1,47 @@
+spring:
+  flyway:
+    enabled: false
+    url: jdbc:mysql://10.15.99.217:3306/one-service-oauth2-testlocal?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    user: one-service-oauth2-testlocal
+    password: one@2019
+
+  application:
+    name: oauth2
+
+  datasource:
+    driver: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://10.15.99.217:3306/one-service-oauth2-testlocal?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: one-service-oauth2-testlocal
+    password: one@2019
+    maximum-pool-size: 20
+    minimum-idle: 6
+    connection-timeout: 30000
+    idle-timeout: 60000
+    max-lifetime: 1800000
+    leak-detection-threshold: 200000
+  hikari:
+    data-source-properties:
+      cachePrepStmts: true
+      prepStmtCacheSize: 250
+      prepStmtCacheSqlLimit: 2048
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: false
+
+server:
+  port: 9000
+  servlet:
+    context-path: /api
+batch:
+  active: true
+async:
+  thread-pool:
+    core-thread: 5
+    max-thread: 10
+    queue-capacity: 100
