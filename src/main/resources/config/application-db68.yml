@@ -34,6 +34,21 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: false
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: xxxx
+            client-secret: xxxx
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
+      provider:
+        google:
+          issuer-uri: https://accounts.google.com
 server:
   port: 9000
   servlet:
@@ -45,3 +60,17 @@ async:
     core-thread: 5
     max-thread: 10
     queue-capacity: 100
+auth:
+  login:
+    max-failed: 3
+    lock-minutes: 15
+security:
+  jwt:
+    # KEY tối thiểu 32 bytes cho HS256
+    secret: Ak3hbR0drmcbSoIMyVdldA6jCbWxRbE_Iy17Rlpl2XAa
+    access-token-seconds: 36000  # 10h (ta sẽ trả expires_in = 35999)
+    refresh-token-seconds: 2592000 # 30 ngày
+    issuer: jwt-auth-service
+app:
+  frontend:
+    success-url: "http://localhost:3000/auth/callback"
