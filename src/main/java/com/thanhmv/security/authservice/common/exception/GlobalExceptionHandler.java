@@ -41,10 +41,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, ex.getMessage(), req.getRequestURI());
     }
 
-    // 401 - Sai user/pass
+    // 401 - Sai pass
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCred(BadCredentialsException ex, HttpServletRequest req){
-        return build(HttpStatus.UNAUTHORIZED, ErrorCode.AUTH_BAD_CREDENTIALS, "Invalid credentials", req.getRequestURI());
+        return build(HttpStatus.UNAUTHORIZED, ErrorCode.AUTH_BAD_CREDENTIALS, ex.getMessage(), req.getRequestURI());
+    }
+
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleBadCred(AccountNotFoundException ex, HttpServletRequest req){
+        return build(HttpStatus.UNAUTHORIZED, ErrorCode.AUTH_BAD_CREDENTIALS, ex.getMessage(), req.getRequestURI());
     }
 
     // 423 - Tài khoản bị khóa tạm thời

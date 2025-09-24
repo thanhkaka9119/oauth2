@@ -11,8 +11,8 @@ import java.time.Instant;
 @Table(name = "user_login_attempts")
 public class LoginAttempt {
     @Id
-    @Column(length = 50)
-    private String username;
+    @Column(length = 100)
+    private String email;
 
     @Column(name="failed_attempts", nullable=false)
     private int failedAttempts;

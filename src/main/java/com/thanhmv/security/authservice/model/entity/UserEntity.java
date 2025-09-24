@@ -14,13 +14,13 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable=false, unique=true, length=50)
+    @Column(length=50)
     private String username;
 
     @Column(nullable=false, length=200)
     private String password;
 
-    @Column(name="full_name", nullable=false, length=100)
+    @Column(name="full_name", length=100)
     private String fullName;
 
     private String phone;
@@ -36,9 +36,4 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name="role_id")
     )
     private Set<RoleEntity> roles;
-
-    @Column(name="password_set", nullable=false)
-    private Boolean passwordSet = true;
-    @Column(name="email_verified", nullable=false)
-    private Boolean emailVerified = true;
 }

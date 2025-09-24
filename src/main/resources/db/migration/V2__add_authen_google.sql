@@ -16,10 +16,6 @@ CREATE TABLE IF NOT EXISTS external_identities (
   CONSTRAINT fk_ext_id_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-ALTER TABLE users
-  ADD COLUMN password_set BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT FALSE;
-
 -- Bổ sung cột user_id và metadata
 ALTER TABLE refresh_tokens
   ADD COLUMN user_id BIGINT NULL,

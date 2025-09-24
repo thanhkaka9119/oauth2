@@ -1,5 +1,6 @@
 package com.thanhmv.security.authservice.service;
 
+import com.thanhmv.security.authservice.common.exception.AccountNotFoundException;
 import com.thanhmv.security.authservice.common.exception.LockedAccountException;
 import com.thanhmv.security.authservice.common.util.JwtUtil;
 import com.thanhmv.security.authservice.model.dto.oauth.OAuth2UserInfo;
@@ -27,11 +28,11 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final org.springframework.core.env.Environment env;
 
-    public Map<String, Object> passwordGrant(String username, String password, String scope) {
+    public Map<String, Object> passwordGrant(String email, String password, String scope) {
         // 1) Kiểm tra lock
-        LoginAttempt la = attemptRepo.findById(username).orElseGet(() -> {
+        LoginAttempt la = attemptRepo.findById(email).orElseGet(() -> {
             LoginAttempt x = new LoginAttempt();
-            x.setUsername(username);
+            x.setEmail(email);
             x.setFailedAttempts(0);
             return x;
         });
@@ -43,8 +44,8 @@ public class AuthService {
         }
 
         // 2) Tải user + quyền
-        UserEntity user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        UserEntity user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new AccountNotFoundException("Invalid email information"));
         if (Boolean.FALSE.equals(user.getEnabled())) {
             throw new org.springframework.security.authentication.DisabledException("Account disabled");
         }
@@ -57,7 +58,7 @@ public class AuthService {
                 la.setFailedAttempts(0); // reset counter sau khi khóa
             }
             attemptRepo.save(la);
-            throw new org.springframework.security.authentication.BadCredentialsException("Invalid credentials");
+            throw new org.springframework.security.authentication.BadCredentialsException("Invalid password information");
         }
 
         // 4) Reset đếm khi login thành công
@@ -70,7 +71,7 @@ public class AuthService {
 
         // 6) Tạo access token & refresh token
         long accessSecs = Long.parseLong(env.getProperty("security.jwt.access-token-seconds", "36000"));
-        String accessToken = jwtUtil.generateAccessToken(user.getUsername(), authorities, accessSecs);
+        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), authorities, accessSecs);
 
         String refreshToken = UUID.randomUUID().toString().replace("-", "");
         Instant rtExp = Instant.now()
@@ -106,7 +107,7 @@ public class AuthService {
         List<String> authorities = buildAuthorities(user);
 
         long accessSecs = Long.parseLong(env.getProperty("security.jwt.access-token-seconds", "36000"));
-        String accessToken = jwtUtil.generateAccessToken(user.getUsername(), authorities, accessSecs);
+        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), authorities, accessSecs);
 
         // (tuỳ bạn: có thể rotate refresh token, ở đây giữ nguyên)
         Map<String, Object> resp = new LinkedHashMap<>();
@@ -136,44 +137,39 @@ public class AuthService {
     }
 
     @Transactional
-    public UserEntity linkOrCreate(OAuth2UserInfo info) {
+    public String linkOrCreate(OAuth2UserInfo info) {
+
         // info.sub (provider_user_id), info.email, info.name, info.picture
 
         // 1) Tìm theo provider+subject
+        UserEntity user = null;
         var ei = extIdRepo.findByProviderAndProviderUserId("google", info.getSub());
         if (ei.isPresent()) {
             ei.get().setLastLoginAt(Instant.now());
             extIdRepo.save(ei.get());
-            return ei.get().getUser();
+            user = ei.get().getUser();
         }
 
         // 2) Nếu chưa có, thử map bằng email
-        UserEntity user = userRepo.findByEmail(info.getEmail()).orElse(null);
         if (user == null) {
-            // 2a) Tạo user mới
-            String username = info.getEmail();
-            String randomBcrypt = passwordEncoder.encode(UUID.randomUUID().toString());
+            user = userRepo.findByEmail(info.getEmail()).orElse(null);
+            if (user == null){
+                // 2a) Tạo user mới
+                String randomBcrypt = passwordEncoder.encode(UUID.randomUUID().toString());
 
-            user = new UserEntity();
-            user.setUsername(username);
-            user.setFullName(info.getName());
-            user.setEmail(info.getEmail());
-            user.setPassword(randomBcrypt);
-            user.setPasswordSet(false);          // KHÔNG cho login bằng mật khẩu
-            user.setEmailVerified(true);
-            user.setEnabled(true);
-            userRepo.save(user);
+                user = new UserEntity();
+                user.setFullName(info.getName());
+                user.setEmail(info.getEmail());
+                user.setPassword(randomBcrypt);
+                user.setEnabled(true);
+                userRepo.save(user);
 
-            // Gán ROLE_USER mặc định
-            RoleEntity roleUser = roleRepository.findByName("ROLE_USER").orElseThrow();
-            if (!userRoleRepo.existsByUser_IdAndRole_Id(user.getId(), roleUser.getId())) {
-                userRoleRepo.save(UserRoleEntity.of(user, roleUser));
+                // Gán ROLE_USER mặc định
+                RoleEntity roleUser = roleRepository.findByName("ROLE_USER").orElseThrow();
+                if (!userRoleRepo.existsByUser_IdAndRole_Id(user.getId(), roleUser.getId())) {
+                    userRoleRepo.save(UserRoleEntity.of(user, roleUser));
+                }
             }
-        } else {
-            // 2b) Nếu user đã có, cho phép local login vẫn giữ password_set hiện tại
-            // Có thể set email_verified=true nếu bạn tin nguồn Google.
-            user.setEmailVerified(true);
-            userRepo.save(user);
         }
 
         // 3) Tạo liên kết external identity
@@ -187,7 +183,20 @@ public class AuthService {
         link.setLastLoginAt(Instant.now());
         extIdRepo.save(link);
 
-        return user;
+        // Lấy authorities từ DB rồi phát JWT
+        long accessSecs = Long.parseLong(env.getProperty("security.jwt.access-token-seconds", "36000"));
+        List<String> authorities = buildAuthorities(user);
+        String jwt = jwtUtil.generateAccessToken(user.getEmail(), authorities, accessSecs);
+
+        // Trả JWT cho client
+        String target = env.getProperty("app.frontend.success-url",
+                "http://localhost:3000/auth/callback");
+
+        // Đưa token vào fragment để tránh xuất hiện ở Referer/log server
+        String redirectUrl = target + "#access_token=" +
+                java.net.URLEncoder.encode(jwt, java.nio.charset.StandardCharsets.UTF_8);
+
+        return redirectUrl;
     }
 
 

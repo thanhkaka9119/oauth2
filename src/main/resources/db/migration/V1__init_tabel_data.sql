@@ -1,8 +1,8 @@
 DROP TABLE IF EXISTS users, roles, user_roles, permissions, role_permissions, user_login_attempts, refresh_tokens;
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    full_name VARCHAR(100) NOT NULL,
+    username VARCHAR(50),
+    full_name VARCHAR(100),
     phone VARCHAR(20),
     email VARCHAR(100) UNIQUE,
     password VARCHAR(200) NOT NULL,

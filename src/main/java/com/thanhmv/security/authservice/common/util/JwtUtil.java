@@ -20,11 +20,11 @@ public class JwtUtil {
         this.issuer = env.getProperty("security.jwt.issuer", "jwt-auth-service");
     }
 
-    public String generateAccessToken(String username, List<String> authorities,
+    public String generateAccessToken(String email, List<String> authorities,
                                       long expiresInSeconds) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .setSubject(username) //là claim chuẩn trong JWT để định danh "chủ thể" token.
+                .setSubject(email) //là claim chuẩn trong JWT để định danh "chủ thể" token.
                 .setIssuer(issuer)//ai phát hành token (tên hệ thống, service).
                 .setIssuedAt(Date.from(now))//thời điểm phát hành token.
                 .setExpiration(Date.from(now.plusSeconds(expiresInSeconds)))//thời điểm token hết hạn. ví dụ 3600 = 1h.
@@ -33,10 +33,17 @@ public class JwtUtil {
                 .compact();
     }
 
-    public Jws<Claims> parse(String token) {
+    public Jws<Claims> parse(String token) throws JwtException {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
+                .setAllowedClockSkewSeconds(60)
                 .build()
                 .parseClaimsJws(token);
+    }
+
+    /** true nếu token hợp lệ & còn hạn */
+    public boolean isTokenValid(String token) {
+        try { parse(token); return true; }
+        catch (JwtException | IllegalArgumentException e) { return false; }
     }
 }

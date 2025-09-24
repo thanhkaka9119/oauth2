@@ -39,7 +39,7 @@ spring:
       client:
         registration:
           google:
-            client-id: xxxx
+            client-id: xxxxx
             client-secret: xxxx
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope:

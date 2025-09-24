@@ -35,11 +35,11 @@ public class AuthController {
     private ResponseEntity<Map<String, Object>> handleToken(TokenRequest req) {
         String gt = req.getGrant_type();
         if ("password".equalsIgnoreCase(gt)) {
-            if (req.getUsername() == null || req.getPassword() == null) {
+            if (req.getEmail() == null || req.getPassword() == null) {
                 throw new IllegalArgumentException("username/password required");
             }
             Map<String, Object> resp = authService.passwordGrant(
-                    req.getUsername(), req.getPassword(),
+                    req.getEmail(), req.getPassword(),
                     req.getScope() == null ? "" : req.getScope()
             );
             return ResponseEntity.ok(resp);

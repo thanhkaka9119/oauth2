@@ -9,7 +9,7 @@ public class TokenRequest {
     private String grant_type;
 
     // password grant
-    private String username;
+    private String email;
     private String password;
     private String scope; // mã bất kỳ, sẽ echo lại
 

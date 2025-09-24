@@ -1,8 +1,8 @@
-DROP TABLE IF EXISTS users, roles, user_roles, permissions, role_permissions;
+DROP TABLE IF EXISTS users, roles, user_roles, permissions, role_permissions, user_login_attempts, refresh_tokens;
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    full_name VARCHAR(100) NOT NULL,
+    username VARCHAR(50),
+    full_name VARCHAR(100),
     phone VARCHAR(20),
     email VARCHAR(100) UNIQUE,
     password VARCHAR(200) NOT NULL,
@@ -75,3 +75,18 @@ VALUES (
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u, roles r
 WHERE u.username = 'admin' AND r.name = 'ROLE_ADMIN';
+
+-- Bảng đếm số lần sai & thời điểm lock
+CREATE TABLE IF NOT EXISTS user_login_attempts (
+  username VARCHAR(50) PRIMARY KEY,
+  failed_attempts INT NOT NULL DEFAULT 0,
+  locked_until TIMESTAMP NULL
+);
+
+-- Lưu refresh token (random) + scope
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  token VARCHAR(128) PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  scope VARCHAR(255),
+  expires_at TIMESTAMP NOT NULL
+);
